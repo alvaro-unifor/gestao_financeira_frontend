@@ -24,12 +24,27 @@ export const criarReceita = async (receita, token) => {
     }
 };
 
-export const atualizarReceita = async (id, receita, token) => {
+export const atualizarReceita = async (receitaEditando, token, userId) => {
     try {
-        const response = await fetch(`${API_URL}/atualizar-receita/${id}`, {
+        console.log('Atualizando receita:', {
+            amount: Number(receitaEditando.amount), 
+            date: receitaEditando.date, 
+            description: receitaEditando.description, 
+            tag_ids: receitaEditando.tag_ids,
+            user_id: userId,
+            type: receitaEditando.type
+        });
+        const response = await fetch(`${API_URL}/api/transactions/${receitaEditando.id}`, {
             method: 'PUT',
             headers: getAuthHeaders(token),
-            body: JSON.stringify(receita)
+            body: JSON.stringify({
+                amount: Number(receitaEditando.amount),
+                date: receitaEditando.data ? new Date(receitaEditando.data).toISOString() : null,
+                description: receitaEditando.description, 
+                tag_ids: receitaEditando.tag_ids,
+                user_id: userId,
+                type: receitaEditando.type
+            })
         });
         if (!response.ok) {
             throw new Error('Network response was not ok ' + response.statusText);
@@ -56,7 +71,6 @@ export const deletarReceita = async (id, token) => {
 };
 
 export const listarReceitas = async (token) => {
-    console.log('CHEGOU AQUI');
     try {
         const response = await fetch(`${API_URL}/api/transactions`, {
             headers: getAuthHeaders(token)
@@ -65,7 +79,6 @@ export const listarReceitas = async (token) => {
             throw new Error('Network response was not ok ' + response.statusText);
         }
         const data = await response.json();
-        console.log('Response from listarReceitas:', data);
         return data;
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);

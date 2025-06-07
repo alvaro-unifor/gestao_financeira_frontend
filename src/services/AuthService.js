@@ -1,7 +1,6 @@
 const API_URL = 'http://localhost:4000';
 
 export const login = async (credentials) => {
-    console.log('Logging in with credentials:', credentials);
     try {
         const response = await fetch(`${API_URL}/api/login`, {
             method: 'POST',
@@ -15,6 +14,7 @@ export const login = async (credentials) => {
         }
         const data = await response.json();
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user_id', data.user_id);
         return data;
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);

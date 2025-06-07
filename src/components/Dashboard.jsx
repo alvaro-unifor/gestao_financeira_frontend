@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { listarReceitas, criarReceita, deletarReceita, atualizarReceita, listarMaioresReceitas, listarMenoresReceitas, listarReceitasPorMes, listarReceitasPorPeriodo } from '../services/ReceitaService';
 import { listarDespesas, criarDespesa, deletarDespesa, atualizarDespesa, listarMaioresDespesas, listarMenoresDespesas, listarDespesasPorMes, listarDespesasPorPeriodo } from '../services/DespesaService';
 import { listarCategorias, cadastrarCategoria } from '../services/CategoriaService';
-import { Bar } from 'react-chartjs-2';
 import './Dashboard.css';
 
-const Dashboard = ({ token }) => {
+const Dashboard = ({ token, userId }) => {
     const [transacoes, setTransacoes] = useState([]);
-    const [despesas, setDespesas] = useState([]);
+    const [tags, setTags] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [novaReceita, setNovaReceita] = useState({ descricao: '', valor: '', data: '', categoria: '' });
     const [novaDespesa, setNovaDespesa] = useState({ descricao: '', valor: '', data: '', categoria: '' });
@@ -17,15 +16,15 @@ const Dashboard = ({ token }) => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const receitasData = await listarReceitas(token);
-            //const despesasData = await listarDespesas(token, userId);
+            const transacoesData = await listarReceitas(token);
+            const tagsData = await listarDespesas(token);
             ///const categoriasData = await listarCategorias(token);
-            setTransacoes(receitasData);
-            //setDespesas(despesasData);
+            setTransacoes(transacoesData);
+            setTags(tagsData);
             //setCategorias(categoriasData);
         };
         fetchData();
-    }, [token]);
+    }, [token, userId]);
 
     const handleReceitaChange = (e) => {
         const { name, value } = e.target;
@@ -110,9 +109,10 @@ const Dashboard = ({ token }) => {
 
     const handleSaveReceita = async () => {
         if (receitaEditando) {
-            const success = await atualizarReceita(receitaEditando.id, receitaEditando, token);
+            console.log('Salvando receita editada:', receitaEditando);
+            const success = await atualizarReceita(receitaEditando, token, userId);
             if (success) {
-                setTransacoes(receitas.map((receita) => (receita.id === receitaEditando.id ? receitaEditando : receita)));
+                setTransacoes(transacoes.map((transacao) => (transacao.id === receitaEditando.id ? receitaEditando : transacao)));
                 setReceitaEditando(null); // Fecha o modo de edição
             } else {
                 alert("Erro ao atualizar a receita. Tente novamente.");
@@ -134,26 +134,32 @@ const Dashboard = ({ token }) => {
                             <th>Descrição</th>
                             <th>Valor</th>
                             <th>Data</th>
+                            <th>Tipo</th>
                             <th>Categoria</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {transacoes.map((receita) => (
-                            <tr key={transacoes.id}>
-                                <td>{transacoes.descricao}</td>
-                                <td>{transacoes.valor}</td>
-                                <td>{transacoes.data}</td>
-                                <td>{transacoes.descricaoCategoria ? transacoes.descricaoCategoria : 'Sem Categoria'}</td>
+                        {transacoes.map((transacao) => (
+                            <tr key={transacao.id}>
+                                <td>{transacao.description}</td>
+                                <td>{transacao.amount}</td>
+                                <td>{transacao.date}</td>
+                                <td>{transacao.type}</td>
+                                <td>
+                                    {transacao.tags && transacao.tags.length > 0
+                                    ? transacao.tags.map(tag => tag.name).join(', ')
+                                    : 'Sem Tags'}
+                                </td>
                                 <td className="acoes">
                                     <button
-                                        onClick={() => handleDeleteReceita(transacoes.id)}
+                                        onClick={() => handleDeleteReceita(transacao.id)}
                                         className="btn-excluir"
                                     >
                                         Excluir
                                     </button>
                                     <button
-                                        onClick={() => handleEditReceita(transacoes)}
+                                        onClick={() => handleEditReceita(transacao)}
                                         className="btn-editar"
                                     >
                                         Editar
@@ -172,7 +178,7 @@ const Dashboard = ({ token }) => {
                             placeholder="Descrição"
                             value={receitaEditando.descricao}
                             onChange={(e) =>
-                                setReceitaEditando({ ...receitaEditando, descricao: e.target.value })
+                                setReceitaEditando({ ...receitaEditando, description: e.target.value })
                             }
                             className="input"
                         />
@@ -182,37 +188,55 @@ const Dashboard = ({ token }) => {
                             placeholder="Valor"
                             value={receitaEditando.valor}
                             onChange={(e) =>
-                                setReceitaEditando({ ...receitaEditando, valor: e.target.value })
+                                setReceitaEditando({ ...receitaEditando, amount: e.target.value })
                             }
                             className="input"
                         />
                         <input
                             type="date"
                             name="data"
-                            placeholder="Data"
-                            value={receitaEditando.data}
-                            onChange={(e) =>
+                            value={receitaEditando.data || ""}
+                            onChange={e =>
                                 setReceitaEditando({ ...receitaEditando, data: e.target.value })
                             }
                             className="input"
-                        />
+                            />
                         <select
-                            name="categoria"
-                            value={receitaEditando.categoria}
-                            onChange={(e) =>
-                                setReceitaEditando({ ...receitaEditando, categoria: e.target.value })
+                            name="type"
+                            value={receitaEditando.type || ""}
+                            onChange={e =>
+                                setReceitaEditando({ ...receitaEditando, type: e.target.value })
                             }
                             className="input"
                         >
-                            <option value="">Selecione uma Categoria</option>
-                            {categorias
-                                .filter((categoria) => categoria.tipo === 'RECEITA')
-                                .map((categoria) => (
-                                    <option key={categoria.id} value={categoria.id}>
-                                        {categoria.nome}
-                                    </option>
-                                ))}
+                            <option value="">Selecione o Tipo</option>
+                            <option value="RECEITA">Receita</option>
+                            <option value="DESPESA">Despesa</option>
                         </select>
+                        <label htmlFor="tags-select" style={{ fontWeight: 'bold', marginBottom: 4 }}>
+                            Tags (segure Ctrl ou Shift para selecionar várias)
+                        </label>
+                        <select
+                            id="tags-select"
+                            name="tags"
+                            multiple
+                            value={receitaEditando.tag_ids || []}
+                            onChange={e => {
+                                const selected = Array.from(e.target.selectedOptions, option => Number(option.value));
+                                setReceitaEditando({ ...receitaEditando, tag_ids: selected });
+                            }}
+                            className="input"
+                            size={Math.min(tags.length, 6)} // mostra até 6 opções visíveis
+                        >
+                            {tags.map(tag => (
+                                <option key={tag.id} value={tag.id}>
+                                    {tag.name}
+                                </option>
+                            ))}
+                        </select>
+                        <small style={{ display: 'block', marginTop: 4, color: '#666' }}>
+                            Segure Ctrl (Windows) ou Command (Mac) para selecionar várias tags.
+                        </small>
                         <div className="botoes-editar">
                             <button onClick={handleSaveReceita} className="btn-salvar">
                                 Salvar
@@ -225,7 +249,7 @@ const Dashboard = ({ token }) => {
                 )}
 
                 <form onSubmit={handleReceitaSubmit} className="form-receita">
-                    <h3>Adicionar Nova Receita</h3>
+                    <h3>Adicionar Nova Transação</h3>
                     <input
                         type="text"
                         name="descricao"
@@ -270,37 +294,28 @@ const Dashboard = ({ token }) => {
             </div>
 
             {/* Seção de Despesas */}
-            <div className="mb-8">
-                <h2 className="text-3xl mb-4 text-red-600">Despesas</h2>
-
-                {/* Tabela de Despesas */}
-                <table className="min-w-full bg-white mb-8 rounded-xl shadow-lg">
+            <div className="despesas-section">
+                <h2 className="despesas-title">Tags</h2>
+                <table className="despesas-table">
                     <thead>
-                        <tr className="bg-red-100">
-                            <th className="py-4 px-6">Descrição</th>
-                            <th className="py-4 px-6">Valor</th>
-                            <th className="py-4 px-6">Data</th>
-                            <th className="py-4 px-6">Categoria</th>
-                            <th className="py-4 px-6">Ações</th>
+                        <tr className="despesas-header">
+                            <th>Descrição</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {(despesas).map((despesa) => (
-                            <tr key={despesa.id} className="border-t">
-                                <td className="py-4 px-6">{despesa.descricao}</td>
-                                <td className="py-4 px-6">{despesa.valor}</td>
-                                <td className="py-4 px-6">{despesa.data}</td>
-                                <td className="py-4 px-6">{despesa.descricaoCategoria ? despesa.descricaoCategoria : 'Sem Categoria'}</td>
-                                <td className="py-4 px-6 flex space-x-4">
+                        {tags.map((tag) => (
+                            <tr key={tag.id} className="despesas-row">
+                                <td>{tag.name}</td>
+                                <td className="despesas-acoes">
                                     <button
-                                        onClick={() => handleDeleteDespesa(despesa.id)}
-                                        className="bg-red-600 text-white px-4 py-2 rounded-lg"
+                                        onClick={() => handleDeleteDespesa(tag.id)}
+                                        className="btn-excluir"
                                     >
                                         Excluir
                                     </button>
                                     <button
-                                        onClick={() => handleEditDespesa(despesa)}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                                        onClick={() => handleEditDespesa(tag)}
+                                        className="btn-editar"
                                     >
                                         Editar
                                     </button>
@@ -310,8 +325,8 @@ const Dashboard = ({ token }) => {
                     </tbody>
                 </table>
                 {despesaEditando && (
-                    <div className="mb-8 p-6 bg-red-50 rounded-xl shadow-lg">
-                        <h3 className="text-3xl mb-6 text-red-600">Editar Despesa</h3>
+                    <div className="editar-despesa">
+                        <h3>Editar Despesa</h3>
                         <input
                             type="text"
                             name="descricao"
@@ -320,7 +335,7 @@ const Dashboard = ({ token }) => {
                             onChange={(e) =>
                                 setDespesaEditando({ ...despesaEditando, descricao: e.target.value })
                             }
-                            className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                            className="input"
                         />
                         <input
                             type="number"
@@ -330,7 +345,7 @@ const Dashboard = ({ token }) => {
                             onChange={(e) =>
                                 setDespesaEditando({ ...despesaEditando, valor: e.target.value })
                             }
-                            className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                            className="input"
                         />
                         <input
                             type="date"
@@ -340,7 +355,7 @@ const Dashboard = ({ token }) => {
                             onChange={(e) =>
                                 setDespesaEditando({ ...despesaEditando, data: e.target.value })
                             }
-                            className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                            className="input"
                         />
                         <select
                             name="categoria"
@@ -348,7 +363,7 @@ const Dashboard = ({ token }) => {
                             onChange={(e) =>
                                 setDespesaEditando({ ...despesaEditando, categoria: e.target.value })
                             }
-                            className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                            className="input"
                         >
                             <option value="">Selecione uma Categoria</option>
                             {categorias
@@ -359,32 +374,26 @@ const Dashboard = ({ token }) => {
                                     </option>
                                 ))}
                         </select>
-                        <div className="flex space-x-4">
-                            <button
-                                onClick={handleSaveDespesa}
-                                className="bg-green-600 text-white px-6 py-3 rounded-xl"
-                            >
+                        <div className="botoes-editar">
+                            <button onClick={handleSaveDespesa} className="btn-salvar">
                                 Salvar
                             </button>
-                            <button
-                                onClick={() => setDespesaEditando(null)}
-                                className="bg-gray-600 text-white px-6 py-3 rounded-xl"
-                            >
+                            <button onClick={() => setDespesaEditando(null)} className="btn-cancelar">
                                 Cancelar
                             </button>
                         </div>
                     </div>
                 )}
 
-                <form onSubmit={handleDespesaSubmit} className="mb-8 p-6 bg-red-50 rounded-xl shadow-lg">
-                    <h3 className="text-3xl mb-6 text-red-600">Adicionar Nova Despesa</h3>
+                <form onSubmit={handleDespesaSubmit} className="form-despesa">
+                    <h3>Adicionar Nova Despesa</h3>
                     <input
                         type="text"
                         name="descricao"
                         placeholder="Descrição"
                         value={novaDespesa.descricao}
                         onChange={handleDespesaChange}
-                        className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                        className="input"
                     />
                     <input
                         type="number"
@@ -392,7 +401,7 @@ const Dashboard = ({ token }) => {
                         placeholder="Valor"
                         value={novaDespesa.valor}
                         onChange={handleDespesaChange}
-                        className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                        className="input"
                     />
                     <input
                         type="date"
@@ -400,13 +409,13 @@ const Dashboard = ({ token }) => {
                         placeholder="Data"
                         value={novaDespesa.data}
                         onChange={handleDespesaChange}
-                        className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                        className="input"
                     />
                     <select
                         name="categoria"
                         value={novaDespesa.categoria}
                         onChange={handleDespesaChange}
-                        className="mb-6 p-4 border border-red-400 rounded-xl w-full bg-white"
+                        className="input"
                     >
                         <option value="">Selecione uma Categoria</option>
                         {categorias.filter(categoria => categoria.tipo === 'DESPESA').map((categoria) => (
@@ -417,7 +426,7 @@ const Dashboard = ({ token }) => {
                     </select>
                     <button
                         type="submit"
-                        className="bg-red-500 text-white p-4 rounded-xl w-full border-2 border-transparent transition-colors duration-300 ease-in-out hover:bg-white hover:text-red-500 hover:border-red-500"
+                        className="btn-adicionar"
                     >
                         Adicionar Despesa
                     </button>

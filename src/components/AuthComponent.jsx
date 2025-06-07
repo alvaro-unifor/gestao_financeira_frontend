@@ -24,7 +24,7 @@ const AuthComponent = ({ onLoginSuccess }) => {
         setErrorMessage(''); // Limpar mensagem de erro ao tentar logar novamente
         const data = await login(emailData);
         if (data && data.token) {
-            onLoginSuccess(data.token);
+            onLoginSuccess(data.token, data.user_id);
         } else {
             setErrorMessage('Usuário não encontrado ou senha incorreta.');
         }

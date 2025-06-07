@@ -5,15 +5,16 @@ const getAuthHeaders = (token) => ({
     'Authorization': `Bearer ${token}`
 });
 
-export const listarDespesas = async (token, userId) => {
+export const listarDespesas = async (token) => {
     try {
-        const response = await fetch(`${API_URL}/listar-despesas/${userId}`, {
+        const response = await fetch(`${API_URL}/api/tags`, {
             headers: getAuthHeaders(token)
         });
         if (!response.ok) {
             throw new Error('Network response was not ok ' + response.statusText);
         }
-        return await response.json();
+        const data = await response.json();
+        return data;
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
     }
