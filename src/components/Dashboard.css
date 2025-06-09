@@ -162,3 +162,25 @@
 .btn-editar { background: #1976d2; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; }
 .input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; }
 .form-despesa { background: #ffe5e5; padding: 24px; border-radius: 12px; margin-top: 24px; }
+
+/* Estilo para o select de tipo de transação */
+select[name="type"] {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    width: 100%;
+    background: #fff;
+    font-size: 1rem;
+    color: #333;
+    transition: border-color 0.2s;
+}
+
+select[name="type"]:focus {
+    border-color: #000000; /* roxo mais escuro */
+    outline: none;
+}
+
+select[name="type"] option {
+    background: #f3f0ff;
+    color: #333;
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { listarReceitas, criarReceita, deletarReceita, atualizarReceita, listarMaioresReceitas, listarMenoresReceitas, listarReceitasPorMes, listarReceitasPorPeriodo } from '../services/ReceitaService';
+import { listarTransacao, criarTransacao, deletarTransacao, atualizarReceita, listarMaioresReceitas, listarMenoresReceitas, listarReceitasPorMes, listarReceitasPorPeriodo } from '../services/ReceitaService';
 import { listarDespesas, criarDespesa, deletarDespesa, atualizarDespesa, listarMaioresDespesas, listarMenoresDespesas, listarDespesasPorMes, listarDespesasPorPeriodo } from '../services/DespesaService';
 import { listarCategorias, cadastrarCategoria } from '../services/CategoriaService';
 import './Dashboard.css';
@@ -8,7 +8,7 @@ const Dashboard = ({ token, userId }) => {
     const [transacoes, setTransacoes] = useState([]);
     const [tags, setTags] = useState([]);
     const [categorias, setCategorias] = useState([]);
-    const [novaReceita, setNovaReceita] = useState({ descricao: '', valor: '', data: '', categoria: '' });
+    const [novaTransacao, setNovaTransacao] = useState({ description: '', amount: '', date: null, tags_ids: [], type: 'RECEITA' });
     const [novaDespesa, setNovaDespesa] = useState({ descricao: '', valor: '', data: '', categoria: '' });
     const [novaCategoria, setNovaCategoria] = useState({ nome: '', tipo: 'RECEITA' });
     const [despesaEditando, setDespesaEditando] = useState(null);
@@ -16,7 +16,7 @@ const Dashboard = ({ token, userId }) => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const transacoesData = await listarReceitas(token);
+            const transacoesData = await listarTransacao(token);
             const tagsData = await listarDespesas(token);
             ///const categoriasData = await listarCategorias(token);
             setTransacoes(transacoesData);
@@ -26,9 +26,9 @@ const Dashboard = ({ token, userId }) => {
         fetchData();
     }, [token, userId]);
 
-    const handleReceitaChange = (e) => {
+    const handleTransacaoChange = (e) => {
         const { name, value } = e.target;
-        setNovaReceita({ ...novaReceita, [name]: value });
+        setNovaTransacao({ ...novaTransacao, [name]: value });
     };
 
     const handleDespesaChange = (e) => {
@@ -41,11 +41,11 @@ const Dashboard = ({ token, userId }) => {
         setNovaCategoria({ ...novaCategoria, [name]: value });
     };
 
-    const handleReceitaSubmit = async (e) => {
+    const handleTransacaoSubmit = async (e) => {
         e.preventDefault();
-        const createdReceita = await criarReceita({ ...novaReceita, usuario: userId }, token);
-        setReceitas([...transacoes, createdReceita]);
-        setNovaReceita({ descricao: '', valor: '', data: '', categoria: '' });
+        const createdTransacao = await criarTransacao(novaTransacao, token, userId);
+        setTransacoes([...transacoes, createdTransacao]);
+        setNovaTransacao({ description: '', amount: '', date: '', tags_ids: [] });
     };
 
     const handleDespesaSubmit = async (e) => {
@@ -63,11 +63,11 @@ const Dashboard = ({ token, userId }) => {
     };
 
     const handleDeleteReceita = async (id) => {
-        const confirmDelete = window.confirm("Tem certeza que deseja excluir esta receita?");
+        const confirmDelete = window.confirm("Tem certeza que deseja excluir esta transação?");
         if (confirmDelete) {
-            const success = await deletarReceita(id, token);
+            const success = await deletarTransacao(id, token);
             if (success) {
-                setReceitas(transacoes.filter((receita) => receita.id !== id));
+                setTransacoes(transacoes.filter((transacao) => transacao.id !== id));
             } else {
                 alert("Erro ao excluir a receita. Tente novamente.");
             }
@@ -103,7 +103,7 @@ const Dashboard = ({ token, userId }) => {
     };
 
     const handleEditReceita = (transacoes) => {
-        setReceitaEditando(transacoes); // Define a receita que será editada
+        setReceitaEditando(transacoes);
     };
 
 
@@ -113,7 +113,7 @@ const Dashboard = ({ token, userId }) => {
             const success = await atualizarReceita(receitaEditando, token, userId);
             if (success) {
                 setTransacoes(transacoes.map((transacao) => (transacao.id === receitaEditando.id ? receitaEditando : transacao)));
-                setReceitaEditando(null); // Fecha o modo de edição
+                setReceitaEditando(null);
             } else {
                 alert("Erro ao atualizar a receita. Tente novamente.");
             }
@@ -248,45 +248,66 @@ const Dashboard = ({ token, userId }) => {
                     </div>
                 )}
 
-                <form onSubmit={handleReceitaSubmit} className="form-receita">
+                <form onSubmit={handleTransacaoSubmit} className="form-receita">
                     <h3>Adicionar Nova Transação</h3>
                     <input
                         type="text"
-                        name="descricao"
+                        name="description"
                         placeholder="Descrição"
-                        value={novaReceita.descricao}
-                        onChange={handleReceitaChange}
+                        value={novaTransacao.description}
+                        onChange={handleTransacaoChange}
                         className="input"
                     />
                     <input
                         type="number"
-                        name="valor"
+                        name="amount"
                         placeholder="Valor"
-                        value={novaReceita.valor}
-                        onChange={handleReceitaChange}
+                        value={novaTransacao.amount}
+                        onChange={handleTransacaoChange}
                         className="input"
                     />
                     <input
                         type="date"
-                        name="data"
+                        name="date"
                         placeholder="Data"
-                        value={novaReceita.data}
-                        onChange={handleReceitaChange}
+                        value={novaTransacao.date}
+                        onChange={handleTransacaoChange}
                         className="input"
                     />
+
                     <select
-                        name="categoria"
-                        value={novaReceita.categoria}
-                        onChange={handleReceitaChange}
+                        name="type"
+                        value={novaTransacao.type}
+                        onChange={handleTransacaoChange}
                         className="input"
                     >
-                        <option value="">Selecione uma Categoria</option>
-                        {categorias.filter(categoria => categoria.tipo === 'RECEITA').map((categoria) => (
-                            <option key={categoria.id} value={categoria.id}>
-                                {categoria.nome}
+                        <option value="RECEITA">Receita</option>
+                        <option value="DESPESA">Despesa</option>
+                    </select>
+                    <label htmlFor="tags-select" style={{ fontWeight: 'bold', marginBottom: 4 }}>
+                            Tags (segure Ctrl ou Shift para selecionar várias)
+                    </label>
+                    <select
+                        id="tags-select"
+                        name="tags_ids"
+                        multiple
+                        value={novaTransacao.tags_ids || []}
+                        onChange={e => {
+                                const selected = Array.from(e.target.selectedOptions, option => Number(option.value));
+                                setNovaTransacao({ ...novaTransacao, tags_ids: selected });
+                            }}
+                        className="input"
+                        size={Math.min(tags.length, 6)}
+                    >
+                        {tags.map(tag => (
+                            <option key={tag.id} value={tag.id}>
+                                {tag.name}
                             </option>
                         ))}
                     </select>
+                    <small style={{ display: 'block', marginTop: 4, color: '#666' }}>
+                        Segure Ctrl (Windows) ou Command (Mac) para selecionar várias tags.
+                    </small>
                     <button type="submit" className="btn-adicionar">
                         Adicionar Transação
                     </button>

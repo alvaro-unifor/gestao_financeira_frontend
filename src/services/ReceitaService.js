@@ -5,15 +5,28 @@ const getAuthHeaders = (token) => ({
     'Authorization': `Bearer ${token}`
 });
 
-export const criarReceita = async (receita, token) => {
+export const criarTransacao = async (transacao, token, userId) => {
     try {
-        const userId = localStorage.getItem('id');
-        const receitaComUsuario = { ...receita, usuario: userId };
+        console.log({
+                amount: Number(transacao.amount),
+                date: transacao.date ? new Date(transacao.date).toISOString() : null,
+                description: transacao.description, 
+                tag_ids: transacao.tags_ids,
+                user_id: userId,
+                type: transacao.type
+        })
 
-        const response = await fetch(`${API_URL}/criar-receita`, {
+        const response = await fetch(`${API_URL}/api/transactions`, {
             method: 'POST',
             headers: getAuthHeaders(token),
-            body: JSON.stringify(receitaComUsuario)
+            body: JSON.stringify({
+                amount: Number(transacao.amount),
+                date: transacao.date ? new Date(transacao.date).toISOString() : null,
+                description: transacao.description, 
+                tag_ids: transacao.tags_ids,
+                user_id: userId,
+                type: transacao.type
+            })
         });
         if (!response.ok) {
             throw new Error('Network response was not ok ' + response.statusText);
@@ -26,14 +39,6 @@ export const criarReceita = async (receita, token) => {
 
 export const atualizarReceita = async (receitaEditando, token, userId) => {
     try {
-        console.log('Atualizando receita:', {
-            amount: Number(receitaEditando.amount), 
-            date: receitaEditando.date, 
-            description: receitaEditando.description, 
-            tag_ids: receitaEditando.tag_ids,
-            user_id: userId,
-            type: receitaEditando.type
-        });
         const response = await fetch(`${API_URL}/api/transactions/${receitaEditando.id}`, {
             method: 'PUT',
             headers: getAuthHeaders(token),
@@ -55,22 +60,27 @@ export const atualizarReceita = async (receitaEditando, token, userId) => {
     }
 };
 
-export const deletarReceita = async (id, token) => {
+export const deletarTransacao = async (id, token) => {
     try {
-        const response = await fetch(`${API_URL}/deletar-receita/${id}`, {
+        const response = await fetch(`${API_URL}/api/transactions/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders(token)
         });
         if (!response.ok) {
             throw new Error('Network response was not ok ' + response.statusText);
         }
+
+        if (response.status === 204) {
+            return true;
+        }
         return await response.json();
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
+        return false;
     }
 };
 
-export const listarReceitas = async (token) => {
+export const listarTransacao = async (token) => {
     try {
         const response = await fetch(`${API_URL}/api/transactions`, {
             headers: getAuthHeaders(token)
