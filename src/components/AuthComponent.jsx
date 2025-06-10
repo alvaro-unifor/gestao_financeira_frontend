@@ -5,7 +5,7 @@ import './AuthComponent.css';
 
 const AuthComponent = ({ onLoginSuccess }) => {
     const [emailData, setEmailData] = useState({ email: '', password: '' });
-    const [registerData, setRegisterData] = useState({ email: '', password: '' });
+    const [registerData, setRegisterData] = useState({ name: '', email: '', password_hash: '' });
     const [isRegistering, setIsRegistering] = useState(false);
     const [errorMessage, setErrorMessage] = useState(''); // Estado para a mensagem de erro
 
@@ -21,7 +21,7 @@ const AuthComponent = ({ onLoginSuccess }) => {
 
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        setErrorMessage(''); // Limpar mensagem de erro ao tentar logar novamente
+        setErrorMessage('');
         const data = await login(emailData);
         if (data && data.token) {
             onLoginSuccess(data.token, data.user_id);
@@ -44,6 +44,15 @@ const AuthComponent = ({ onLoginSuccess }) => {
 
                     <input
                         type="text"
+                        name="name"
+                        placeholder="Nome"
+                        value={registerData.name}
+                        onChange={handleRegisterChange}
+                        className="auth-input"
+                    />
+
+                    <input
+                        type="text"
                         name="email"
                         placeholder="Email"
                         value={registerData.email}
@@ -53,9 +62,9 @@ const AuthComponent = ({ onLoginSuccess }) => {
 
                     <input
                         type="password"
-                        name="password"
+                        name="password_hash"
                         placeholder="Senha"
-                        value={registerData.password}
+                        value={registerData.password_hash}
                         onChange={handleRegisterChange}
                         className="auth-input"
                     />

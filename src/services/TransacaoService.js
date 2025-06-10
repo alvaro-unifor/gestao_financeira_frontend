@@ -7,22 +7,13 @@ const getAuthHeaders = (token) => ({
 
 export const criarTransacao = async (transacao, token, userId) => {
     try {
-        console.log({
-                amount: Number(transacao.amount),
-                date: transacao.date ? new Date(transacao.date).toISOString() : null,
-                description: transacao.description, 
-                tag_ids: transacao.tags_ids,
-                user_id: userId,
-                type: transacao.type
-        })
-
         const response = await fetch(`${API_URL}/api/transactions`, {
             method: 'POST',
             headers: getAuthHeaders(token),
             body: JSON.stringify({
                 amount: Number(transacao.amount),
                 date: transacao.date ? new Date(transacao.date).toISOString() : null,
-                description: transacao.description, 
+                description: transacao.description,
                 tag_ids: transacao.tags_ids,
                 user_id: userId,
                 type: transacao.type
@@ -45,7 +36,7 @@ export const atualizarReceita = async (receitaEditando, token, userId) => {
             body: JSON.stringify({
                 amount: Number(receitaEditando.amount),
                 date: receitaEditando.data ? new Date(receitaEditando.data).toISOString() : null,
-                description: receitaEditando.description, 
+                description: receitaEditando.description,
                 tag_ids: receitaEditando.tag_ids,
                 user_id: userId,
                 type: receitaEditando.type
